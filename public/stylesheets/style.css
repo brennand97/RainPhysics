@@ -1,0 +1,26 @@
+body {
+    padding: 50px;
+    font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+}
+
+a {
+    color: #00B7FF;
+}
+
+#welcome {
+    z-index: 2;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+    margin: 20px;
+    padding: 10px;
+    background: mediumpurple;
+    font-weight: 600;
+    font-size: 28px;
+    color: whitesmoke;
+}
+
+#the-rain-canvas {
+    z-index: -1;
+    background-color: black;
+}
