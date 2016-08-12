@@ -52,7 +52,7 @@ var settings = {
     rainColorBlue: 255,
     rainColorAlpha: 255,
 
-    numberRainDrops: 1000,
+    numberRainDrops: 700,
     initialRainSpeed: 1.25,
 
     widthRainDrops: 4,
@@ -63,6 +63,7 @@ var settings = {
 
     bottomPadding: 10,
 
+    mouseAverageLength: 5,
     mouseForceScale: 0.00003,
     mouseAffectDistance: 40000,
 
@@ -125,15 +126,16 @@ function rainUpdate() {
     currentPoint = new Point(mouse.x, mouse.y);
     if(previousPoint) {
         mouseVel[count] = new Vector(currentPoint, previousPoint);
+    } else {
+        count--;
     }
     previousPoint = currentPoint;
-    if(count > 9) {
+    count++;
+    if(count > settings.mouseAverageLength - 1) {
         count = 0;
-    } else {
-        count++;
     }
 
-    if(mouseVel.length > 0) {
+    if(mouseVel.length >= settings.mouseAverageLength) {
         var mouseSum = Vector.avg(mouseVel);
         mouseSum.scl(settings.mouseForceScale);
         mouseSum.point.y = 0;
@@ -150,7 +152,9 @@ function rainUpdate() {
 
         if(rain[i].point.y > height - settings.bottomPadding) {
             rain.splice(i, 1);
-            rain.push(new Rain());
+            if(rain.length <= settings.numberRainDrops) {
+                rain.push(new Rain());
+            }
         }
     }
 
