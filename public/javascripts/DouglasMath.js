@@ -1,6 +1,32 @@
 /**
- * Created by Brennan on 8/11/2016.
+ * Created by Brennan on 8/12/2016.
  */
+
+/*******************************************************************/
+//Math functions
+/*******************************************************************/
+var sqrDistance = function (p1, p2) {
+    return ((p2.x - p1.x) * (p2.x - p1.x)) + ((p2.y - p1.y) * (p2.y - p1.y)) + ((p2.z - p1.z) * (p2.z - p1.z));
+};
+
+var distance = function (p1, p2) {
+    return Math.sqrt(sqrDistance(p1, p2));
+};
+
+/*******************************************************************/
+//Point class
+/*******************************************************************/
+var Point = function(x, y, z) {
+    //Coordinates
+    this.x = x;
+    this.y = y;
+    //if z is not specified point is 2D
+    this.z = z || 0;
+};
+
+/*******************************************************************/
+//Vector class
+/*******************************************************************/
 var Vector = function(point1, point2) {
     if(point2) {
         this.point = new Point(point1.x - point2.x, point1.y - point2.y, point1.z - point2.z);
@@ -27,16 +53,16 @@ Vector.prototype.mag = function () {
 };
 
 Vector.prototype.dot = function(vector) {
-    return (vector1.point.x * vector2.point.x) +
-        (vector1.point.y * vector2.point.y) +
-        (vector1.point.z * vector2.point.z);
+    return (this.point.x * vector.point.x) +
+        (this.point.y * vector.point.y) +
+        (this.point.z * vector.point.z);
 };
 
 Vector.prototype.cross = function (vector) {
     return new Vector(new Point(
-        (vector1.point.y * vector2.point.z) - (vector1.point.z * vector2.point.y),
-        (vector1.point.z * vector2.point.x) - (vector1.point.x * vector2.point.z),
-        (vector1.point.x * vector2.point.y) - (vector1.point.y * vector2.point.x)
+        (this.point.y * vector.point.z) - (this.point.z * vector.point.y),
+        (this.point.z * vector.point.x) - (this.point.x * vector.point.z),
+        (this.point.x * vector.point.y) - (this.point.y * vector.point.x)
     ));
 };
 
@@ -69,3 +95,5 @@ Vector.avg = function (vectors) {
 Vector.prototype.toString = function () {
     return " x: " + this.point.x + " y: " + this.point.y + " z: " + this.point.z
 };
+
+/*******************************************************************/
