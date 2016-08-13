@@ -11,11 +11,11 @@ var Force = function (vector, location) {
     this.location = location || new Point();
 };
 
-Force.prototype.getVector = function (point) {
+Force.prototype.getVector = function (particle) {
     return this.vector;
 };
 
-Force.prototype.relevant = function (point) {
+Force.prototype.relevant = function (particle) {
     return true;
 };
 
@@ -45,16 +45,16 @@ var Particle = function (point, mass, vector, scale) {
 Particle.prototype.update = function (deltaTime) {
     //Apply all forces to particle
     for(var i = this.forces.length - 1; i >= 0; i--) {
-        if(!this.forces[i].relevant(this.point)) {
+        if(!this.forces[i].relevant(this)) {
             this.forces.splice(i, 1);
             continue;
         }
         this.velocity.add(this.forces[i].getVector(this).copy().scale(this.scale * (1 / this.mass) * deltaTime));
     }
 
-    this.point.x += this.velocity.point.x * elapsed;
-    this.point.y += this.velocity.point.y * elapsed;
-    this.point.z += this.velocity.point.z * elapsed;
+    this.point.x += this.velocity.point.x * deltaTime;
+    this.point.y += this.velocity.point.y * deltaTime;
+    this.point.z += this.velocity.point.z * deltaTime;
     if(this.point.z < 0) { this.point.z = 0 }
 };
 
