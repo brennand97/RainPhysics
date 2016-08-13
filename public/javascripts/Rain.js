@@ -32,50 +32,47 @@ window.onmousemove = function onmousemove(event) {
     mouse.y = event.clientY;
 };
 
-var getSign = function(number) {
-    if(number >= 0) {
-        return 1;
-    } else {
-        return -1;
-    }
-};
-
-//*******************
-//Main Code goes here
-//*******************
-
-var rain = [];
+//*******************************************************************
+//Main Code here
+//*******************************************************************
 
 var settings = {
-    rainColorRed: 0,
-    rainColorGreen: 191,
-    rainColorBlue: 255,
-    rainColorAlpha: 255,
+                                            //Color of the rain
+    rainColorRed: 0,                        //red component
+    rainColorGreen: 191,                    //green component
+    rainColorBlue: 255,                     //blue component
+    rainColorAlpha: 255,                    //alpha component
 
-    numberRainDrops: 700,
-    initialRainSpeed: 1.25,
+    numberRainDrops: 700,                   //max number of rain drops falling at once
+    initialRainSpeed: 1.25,                 //initial rain speed factor
 
-    widthRainDrops: 4,
-    heightRainDrops: 20,
+    widthRainDrops: 4,                      //width of the rain drops in pixels
+    heightRainDrops: 20,                    //height of the rain drops in pixels
 
-    parallax: 80,
-    maxParallax: 100,
+                                            //Parallax ratio
+    parallax: 80,                           //parallax that defines deepest rain
+    maxParallax: 100,                       //maximum total parallax, used to create scale ratio
 
-    bottomPadding: 10,
+    bottomPadding: 10,                      //number of pixels from the bottom that the rain stops
 
-    mouseAverageLength: 5,
-    mouseForceScale: 0.00003,
-    mouseAffectDistance: 40000,
+    mouseAverageLength: 5,                  //number of mouse movement segments used to take average velocity of mouse
+    mouseForceScale: 0.002,               //scale factor for the mouse force (wind) added to rain
+    mouseAffectDistance: 40000,             //maximum square distance away from the mouse that raindrops will be affected by wind force
 
-    gravity: 0.0001,
-    verticalAirResistance: 0.0001,
-    horizontalAirResistance: 0.01
+    gravity: 0.0001,                        //force of gravity on rain in pixels per millisecond^2
+    verticalAirResistance: 0.0001,          //scale factor coefficient for vertical air resistance
+    horizontalAirResistance: 0.01           //scale factor coefficient for horizontal air resistance
 };
 
-var GRAVITY = new Vector(new Point(0, settings.gravity, 0));   //Units are meters per millisecond^2
+var rain = [];                                                      //Array to hold all the rain drop objects
+var GRAVITY = new Vector(new Point(0, settings.gravity, 0));        //Constant value for the force of gravity
+
+//*******************************************************************
+//Define the rain drop object and its methods
+//*******************************************************************
 
 var Rain = function (point) {
-    this.point = point || new Point(Math.floor((Math.random() * width * 2) - (width / 2)), Math.floor(Math.random() * -height), Math.floor(Math.random() * settings.parallax));
+    this.point = point || new Point(Math.floor(Math.random() * width), Math.floor(Math.random() * -height), Math.floor(Math.random() * settings.parallax));
     this.forces = [];
     this.width = settings.widthRainDrops;
     this.height = settings.heightRainDrops;
@@ -89,7 +86,7 @@ Rain.prototype.updateRain = function (elapsed) {
     this.height = settings.heightRainDrops * this.scl;
 
     while (this.forces.length > 0) {
-        this.velocity.add(this.forces.pop().copy().scl(elapsed * this.scl));
+        this.velocity.add(this.forces.pop().copy().scale(elapsed * this.scl));
     }
 
     this.point.x += this.velocity.point.x * elapsed;
@@ -106,6 +103,12 @@ Rain.prototype.renderRain = function (context) {
     context.fillRect(this.point.x - (this.width / 2), this.point.y - this.height, this.width, this.height);
 };
 
+//===================================================================
+
+//*******************************************************************
+//Define the main render function
+//*******************************************************************
+
 function render(context) {
     context.save();
     context.clearRect(0, 0, width, height);
@@ -117,38 +120,66 @@ function render(context) {
     context.restore();
 }
 
-var mouseVel = [];
-var currentPoint;
-var previousPoint;
-var count = 0;
+//===================================================================
 
-function rainUpdate() {
+var mouseVelocity = [];     //Array that holds vectors that represent mouse velocity segments
+var currentPoint;           //Holds location of the mouse for current cycle
+var previousPoint;          //Holds location of the mouse for previous cycle
+var index = 0;              //Holds current index in the mouseVelocity array
+
+//*******************************************************************
+//Define the main update function
+//*******************************************************************
+
+function update() {
+
+    //***************************************************************
+    //Calculate mouse velocity
+    //***************************************************************
+
     currentPoint = new Point(mouse.x, mouse.y);
     if(previousPoint) {
-        mouseVel[count] = new Vector(currentPoint, previousPoint);
+        mouseVelocity[index] = new Vector(currentPoint, previousPoint);
+        mouseVelocity[index].scale(1 / elapsed);
     } else {
-        count--;
+        index--;
     }
     previousPoint = currentPoint;
-    count++;
-    if(count > settings.mouseAverageLength - 1) {
-        count = 0;
+    index++;
+    if(index > settings.mouseAverageLength - 1) {
+        index = 0;
     }
 
-    if(mouseVel.length >= settings.mouseAverageLength) {
-        var mouseSum = Vector.avg(mouseVel);
-        mouseSum.scl(settings.mouseForceScale);
+    if(mouseVelocity.length >= settings.mouseAverageLength) {
+        var mouseSum = Vector.average(mouseVelocity);
+        mouseSum.scale(settings.mouseForceScale);
         mouseSum.point.y = 0;
     }
 
+    //===============================================================
+
+    //***************************************************************
+    //Handle updating rain drops
+    //***************************************************************
+
     for(var i = rain.length - 1; i >= 0; i--) {
-        rain[i].forces.push(GRAVITY);
-        if(mouseSum && sqrDistance(mouse, rain[i].point) < settings.mouseAffectDistance) {
-            rain[i].forces.push(mouseSum);
+
+        //Add forces to each rain drop
+
+        rain[i].forces.push(GRAVITY);                                                           //add force of gravity
+        if(mouseSum && sqrDistance(mouse, rain[i].point) < settings.mouseAffectDistance) {      //check to see if rain drop is affected by mouse wind
+            rain[i].forces.push(mouseSum);                                                      //add wind force
         }
-        rain[i].forces.push(new Vector(new Point(Math.pow(rain[i].velocity.point.x, 2) * settings.horizontalAirResistance * -getSign(rain[i].velocity.point.x),
-            Math.pow(rain[i].velocity.point.y, 2) * settings.verticalAirResistance * -getSign(rain[i].velocity.point.y))));
+        rain[i].forces.push(new Vector(new Point(Math.pow(rain[i].velocity.point.x, 2) *        //calculate and add force of air resistance
+            settings.horizontalAirResistance * -getSign(rain[i].velocity.point.x),
+            Math.pow(rain[i].velocity.point.y, 2) * settings.verticalAirResistance *
+            -getSign(rain[i].velocity.point.y))));
+
+        //Call rain drop's update function
+
         rain[i].updateRain(elapsed);
+
+        //Check to see if rain drop needs to be removed
 
         if(rain[i].point.y > height - settings.bottomPadding) {
             rain.splice(i, 1);
@@ -158,10 +189,15 @@ function rainUpdate() {
         }
     }
 
+    //===============================================================
+
 }
 
+//===================================================================
 
-//*******************
+//*******************************************************************
+//Define and call the setup function
+//*******************************************************************
 
 (function setup() {
     for(var i = 0; i < settings.numberRainDrops; i++) {
@@ -170,9 +206,15 @@ function rainUpdate() {
     }
 })();
 
-var current = (new Date()).getTime();
-var previous = current;
-var elapsed = 0;
+//===================================================================
+
+var current = (new Date()).getTime();       //current time for current cycle
+var previous = current;                     //previous time for previous cycle
+var elapsed = 0;                            //elapsed time between cycles
+
+//*******************************************************************
+//Define and call the main loop function
+//*******************************************************************
 
 (function loop() {
     current = (new Date()).getTime();
@@ -180,6 +222,8 @@ var elapsed = 0;
     previous = current;
 
     requestAnimFrame(loop);
-    rainUpdate();
+    update();
     render(context);
 })();
+
+//===============================================================

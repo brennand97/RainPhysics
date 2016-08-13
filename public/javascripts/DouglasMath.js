@@ -13,6 +13,14 @@ var distance = function (p1, p2) {
     return Math.sqrt(sqrDistance(p1, p2));
 };
 
+var getSign = function(number) {
+    if(number >= 0) {
+        return 1;
+    } else {
+        return -1;
+    }
+};
+
 /*******************************************************************/
 //Point class
 /*******************************************************************/
@@ -41,13 +49,13 @@ Vector.prototype.add = function (vector) {
     this.point.z += vector.point.z;
 };
 
-Vector.prototype.sub = function (vector) {
+Vector.prototype.subtract = function (vector) {
     this.point.x -= vector.point.x;
     this.point.y -= vector.point.y;
     this.point.z -= vector.point.z;
 };
 
-Vector.prototype.mag = function () {
+Vector.prototype.magnitude = function () {
     return Math.sqrt((this.point.x * this.point.x) +
         (this.point.y * this.point.y) + (this.point.z * this.point.z));
 };
@@ -66,11 +74,11 @@ Vector.prototype.cross = function (vector) {
     ));
 };
 
-Vector.prototype.ang = function (vector) {
+Vector.prototype.angle = function (vector) {
     return Math.acos( (this.dot(vector)) / (this.mag() * vector.mag()) );
 };
 
-Vector.prototype.scl = function(number) {
+Vector.prototype.scale = function(number) {
     this.point.x *= number;
     this.point.y *= number;
     this.point.z *= number;
@@ -81,7 +89,7 @@ Vector.prototype.copy = function () {
     return new Vector(new Point(this.point.x, this.point.y, this.point.z));
 }
 
-Vector.avg = function (vectors) {
+Vector.average = function (vectors) {
     var finalVec = new Vector();
     for(var i = 0; i < vectors.length; i++) {
         finalVec.add(vectors[i]);
