@@ -9,9 +9,11 @@
 var Force = function (vector, location) {
     this.vector = vector || new Vector();
     this.location = location || new Point();
+    this.count = 0;
 };
 
 Force.prototype.getVector = function (particle) {
+    this.count++;
     return this.vector;
 };
 
@@ -24,6 +26,7 @@ Force.prototype.copy = function () {
     this.returnForce = new Force(this.vector, this.location);
     this.returnForce.getVector = this.getVector;
     this.returnForce.relevant = this.relevant;
+    this.returnForce.count = this.count;
     return this.returnForce;
 }
 

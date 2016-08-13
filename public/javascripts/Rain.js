@@ -71,12 +71,12 @@ var settings = {
     bottomPadding: 10,                      //number of pixels from the bottom that the rain stops
 
     mouseAverageLength: 5,                  //number of mouse movement segments used to take average velocity of mouse
-    mouseForceScale: 0.0001,                 //scale factor for the mouse force (wind) added to rain
+    mouseForceScale: 0.001,                 //scale factor for the mouse force (wind) added to rain
     mouseAffectDistance: 40000,             //maximum square distance away from the mouse that raindrops will be affected by wind force
 
-    gravity: 0.005,                        //force of gravity on rain in pixels per millisecond^2
-    verticalAirResistance: 0.009,       //scale factor coefficient for vertical air resistance
-    horizontalAirResistance: 0.03           //scale factor coefficient for horizontal air resistance
+    gravity: 0.005,                         //force of gravity on rain in pixels per millisecond^2
+    verticalAirResistance: 0.009,           //scale factor coefficient for vertical air resistance
+    horizontalAirResistance: 0.009          //scale factor coefficient for horizontal air resistance
 };
 
 var rain = [];                                                                  //Array to hold all the rain drop objects
@@ -174,7 +174,6 @@ function update() {
 
     if(mouseVelocity.length >= settings.mouseAverageLength) {
         var mouseSum = new Force(Vector.average(mouseVelocity));
-        mouseSum.count = 0;
         mouseSum.relevant = function () {
             if(this.count > 0) {
                 return false;
