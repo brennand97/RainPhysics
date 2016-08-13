@@ -26,10 +26,17 @@ var getSign = function(number) {
 /*******************************************************************/
 var Point = function(x, y, z) {
     //Coordinates
-    this.x = x;
-    this.y = y;
-    //if z is not specified point is 2D
+    this.x = x || 0;
+    this.y = y || 0;
     this.z = z || 0;
+};
+
+Point.prototype.cast2D = function () {
+    return new Point(this.x, this.y);
+}
+
+Point.prototype.copy = function () {
+    return new Point(this.x, this.y, this.z);
 };
 
 /*******************************************************************/
@@ -39,7 +46,34 @@ var Vector = function(point1, point2) {
     if(point2) {
         this.point = new Point(point1.x - point2.x, point1.y - point2.y, point1.z - point2.z);
     } else {
-        this.point = point1 || new Point(0, 0, 0);
+        this.point = point1 || new Point();
+    }
+};
+
+Vector.degrees = false;
+Vector.i = Vector.x = new Vector(new Point(1, 0, 0));
+Vector.j = Vector.y = new Vector(new Point(0, 1, 0));
+Vector.k = Vector.z = new Vector(new Point(0, 0, 1));
+
+Vector.byPolar = function (radius, angle) {
+    if(Vector.degrees) {
+        return new Vector(new Point(Math.cos(angle * (Math.PI / 180)) * radius,
+            Math.sin(angle * (Math.PI / 180)) * radius));
+    } else {
+        return new Vector(new Point(Math.cos(angle) * radius,
+            Math.sin(angle) * radius));
+    }
+};
+
+Vector.bySpherical = function (radius, theta, phi) {
+    if(Vector.degrees) {
+        return new Vector(new Point(radius * Math.sin(phi * (Math.PI / 180)) * Math.cos(theta * (Math.PI / 180)),
+            radius * Math.sin(phi * (Math.PI / 180)) * Math.sin(theta * (Math.PI / 180)),
+            radius * Math.cos(phi * (Math.PI / 180))));
+    } else {
+        return new Vector(new Point(radius * Math.sin(phi) * Math.cos(theta),
+            radius * Math.sin(phi) * Math.sin(theta),
+            radius * Math.cos(phi)));
     }
 };
 
@@ -47,12 +81,14 @@ Vector.prototype.add = function (vector) {
     this.point.x += vector.point.x;
     this.point.y += vector.point.y;
     this.point.z += vector.point.z;
+    return this;
 };
 
 Vector.prototype.subtract = function (vector) {
     this.point.x -= vector.point.x;
     this.point.y -= vector.point.y;
     this.point.z -= vector.point.z;
+    return this;
 };
 
 Vector.prototype.magnitude = function () {
@@ -60,10 +96,19 @@ Vector.prototype.magnitude = function () {
         (this.point.y * this.point.y) + (this.point.z * this.point.z));
 };
 
+Vector.prototype.magnitude2D = function () {
+    return Math.sqrt((this.point.x * this.point.x) + (this.point.y * this.point.y));
+};
+
 Vector.prototype.dot = function(vector) {
     return (this.point.x * vector.point.x) +
         (this.point.y * vector.point.y) +
         (this.point.z * vector.point.z);
+};
+
+Vector.prototype.dot2D = function (vector) {
+    return (this.point.x * vector.point.x) +
+        (this.point.y * vector.point.y);
 };
 
 Vector.prototype.cross = function (vector) {
@@ -74,8 +119,47 @@ Vector.prototype.cross = function (vector) {
     ));
 };
 
+Vector.prototype.projection = function (vector) {
+    return vector.copy().scale(this.dot(vector) / Math.pow(vector.magnitude(), 2));
+};
+
+Vector.prototype.projection2D = function (vector) {
+    return vector.copy().scale(this.dot2D(vector) / Math.pow(vector.magnitude2D(), 2));
+};
+
+
+Vector.prototype.unit = function () {
+    return this.copy().scale(1 / this.magnitude());
+};
+
+Vector.prototype.getTheta = function () {
+    if(Vector.degrees) {
+        return Math.atan(this.point.y / this.point.x) / (Math.PI / 180);
+    } else {
+        return Math.atan(this.point.y / this.point.x);
+    }
+};
+
+Vector.prototype.getPhi = function () {
+    if(Vector.degrees) {
+        return (Math.acos((this.point.z) /
+            Math.sqrt((this.point.x * this.point.x) +
+                (this.point.y * this.point.y) +
+                (this.point.z * this.point.z)))) / (Math.PI / 180);
+    } else {
+        return Math.acos((this.point.z) /
+            Math.sqrt((this.point.x * this.point.x) +
+                (this.point.y * this.point.y) +
+                (this.point.z * this.point.z)));
+    }
+};
+
 Vector.prototype.angle = function (vector) {
-    return Math.acos( (this.dot(vector)) / (this.mag() * vector.mag()) );
+    if (Vector.degrees) {
+        return Math.acos((this.dot(vector)) / (this.magnitude() * vector.magnitude())) / (Math.PI / 180);
+    } else {
+        return Math.acos((this.dot(vector)) / (this.magnitude() * vector.magnitude()));
+    }
 };
 
 Vector.prototype.scale = function(number) {
@@ -87,7 +171,7 @@ Vector.prototype.scale = function(number) {
 
 Vector.prototype.copy = function () {
     return new Vector(new Point(this.point.x, this.point.y, this.point.z));
-}
+};
 
 Vector.average = function (vectors) {
     var finalVec = new Vector();
