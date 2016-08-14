@@ -83,23 +83,27 @@ Particle.prototype.getMomentum = function () {
     return this.velocity.magnitude() * this.mass;
 };
 
+Particle.VERY_LAGE = 1000;
+
 Particle.prototype.collision = function (particle, inelastic) {
     if(!inelastic) {
         inelastic = 1;
     }
-    Vector.degrees = false;
-    this.impactVector = (new Vector(this.point.cast2D(), particle.point.cast2D())).unit();
-    this.directionVelocity = this.velocity.projection(this.impactVector);
-    particle.directionVelocity = particle.velocity.projection(this.impactVector);
+    var impactVector = (new Vector(this.point.cast2D(), particle.point.cast2D())).unit();
+    var thisDirectionVelocity = this.velocity.projection(impactVector);
+    var particleDirectionVelocity = particle.velocity.projection(impactVector);
 
-    this.velocity.subtract(this.directionVelocity);
-    this.velocity.add(this.impactVector.copy().scale(-1* (((inelastic * particle.mass * (particle.directionVelocity.magnitude() -
-        this.directionVelocity.magnitude())) + (this.directionVelocity.magnitude() * this.mass) +
-        (particle.mass * particle.directionVelocity.magnitude()))) / (this.mass + particle.mass)));
+    this.velocity.subtract(thisDirectionVelocity);
 
-    this.impactVector = {};
-    this.directionVelocity = {};
-    particle.directionVelocity = {};
+    if(particle.mass === Infinity || particle.mass > this.mass * Particle.VERY_LAGE) {
+        this.velocity.add(thisDirectionVelocity.scale(-1)).add(particleDirectionVelocity);
+        return;
+    }
+
+    this.velocity.subtract(thisDirectionVelocity);
+    this.velocity.add(impactVector.copy().scale(-1* (((inelastic * particle.mass * (particleDirectionVelocity.magnitude() -
+        thisDirectionVelocity.magnitude())) + (thisDirectionVelocity.magnitude() * this.mass) +
+        (particle.mass * particleDirectionVelocity.magnitude()))) / (this.mass + particle.mass)));
 };
 
 //===================================================================

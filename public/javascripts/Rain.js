@@ -240,9 +240,9 @@ function update() {
     Vector.degrees = false;
     for(var i = 0; i < settings.numberRainDrops; i++) {
         rain.push(new Rain());
-        console.log(rain[i]);
-        console.log("ADDED RAIN");
+        console.log("Added Rain");
     }
+    console.log(rain.length + " total rain particles");
 })();
 
 //===================================================================
