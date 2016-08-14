@@ -74,38 +74,37 @@ var settings = {
     mouseForceScale: 0.001,                 //scale factor for the mouse force (wind) added to rain
     mouseAffectDistance: 40000,             //maximum square distance away from the mouse that raindrops will be affected by wind force
 
-    gravity: 0.005,                         //force of gravity on rain in pixels per millisecond^2
-    verticalAirResistance: 0.009,           //scale factor coefficient for vertical air resistance
-    horizontalAirResistance: 0.009          //scale factor coefficient for horizontal air resistance
+    rainDropDragCoefficient: 0.009          //Rain drop drag coefficient for air resistance on rain drop
 };
 
 var rain = [];                                                                  //Array to hold all the rain drop objects
-var GRAVITY = new Force(new Vector(new Point(0, settings.gravity, 0)));         //Constant value for the force of gravity
-var AIR_RESISTANCE = new Force();
-AIR_RESISTANCE.getVector = function (particle) {
-    return new Vector(new Point((Math.pow(particle.velocity.point.x, 2) *                //calculate and add force of air resistance
-        settings.horizontalAirResistance * -getSign(particle.velocity.point.x)) / particle.scale,
-        (Math.pow(particle.velocity.point.y, 2) * settings.verticalAirResistance *
-        -getSign(particle.velocity.point.y)) / particle.scale));
-};
 
 //*******************************************************************
 //Define the rain drop object and its methods
 //*******************************************************************
 
 var Rain = function (point) {
-    this.particle = new Particle();
-    this.point = this.particle.point = point || new Point(Math.floor(Math.random() * width), Math.floor(Math.random() * -height * 2), Math.floor(Math.random() * settings.parallax));
-    this.forces =  this.particle.forces = [];
-    this.width = settings.widthRainDrops;
-    this.height = settings.heightRainDrops;
-    this.scale = this.particle.scale = (settings.maxParallax - this.point.z) / settings.maxParallax;
-    this.velocity = this.particle.velocity = new Vector(new Point(0, this.scale * settings.initialRainSpeed));
+    var p = point || new Point(Math.floor(Math.random() * width), Math.floor(Math.random() * -height * 2), Math.floor(Math.random() * settings.parallax));
+    var s = (settings.maxParallax - p.z) / settings.maxParallax;;
+    var w = settings.widthRainDrops;
+    var h = settings.heightRainDrops;
+    this.convex = new Convex(new Point(), [new Vector(0, 0),
+        new Vector(new Point(w, 0)),
+        new Vector(new Point(w, -h)),
+        new Vector(new Point(0, -h))], Rain.defaultColor, s);
+    RenderObject.call(this, p, [this.convex]);
+
     this.color = Rain.defaultColor;
 
-    this.forces.push(GRAVITY.copy());
-    this.forces.push(AIR_RESISTANCE.copy());
+    this.dragCoefficent = settings.rainDropDragCoefficient;
+    this.velocity = new Vector(new Point(0, this.scale * settings.initialRainSpeed));
+    this.scale = s;
+
+    this.forces.push(Force.GRAVITY.copy());
+    this.forces.push(Force.AIR_RESISTANCE.copy());
 };
+
+Rain.prototype = new RenderObject();
 
 Rain.defaultColor = "rgba(" + settings.rainColorRed + ","
     + settings.rainColorGreen + ","
@@ -117,7 +116,7 @@ Rain.prototype.updateRain = function (elapsed) {
     this.width = settings.widthRainDrops * this.scale;
     this.height = settings.heightRainDrops * this.scale;
 
-    this.particle.update(elapsed);
+    this.updateParticle(elapsed);
 };
 
 Rain.prototype.renderRain = function (context) {
@@ -136,7 +135,7 @@ function render(context) {
     context.clearRect(0, 0, width, height);
 
     for(var i = rain.length - 1; i >= 0; i--) {
-        rain[i].renderRain(context);
+        rain[i].renderObject(context);
     }
 
     context.restore();
@@ -214,9 +213,9 @@ function update() {
 
         //Check to see if rain drop needs to be removed
 
-        if(rain[i].point.y > height - settings.bottomPadding /* || distance(rain[i].point.cast2D(), new Point(width / 2, height / 2)) < Math.min(width / 4, height / 4) */) {
+        if(rain[i].point.y > height - settings.bottomPadding  || distance(rain[i].point.cast2D(), new Point(width / 2, height / 2)) < Math.min(width / 4, height / 4) ) {
             var tmpPoint = new Point(rain[i].point.x, rain[i].point.y + 1, rain[i].point.z);
-            rain[i].particle.collision(new Particle(tmpPoint, 600000000));
+            rain[i].collision(new Particle(tmpPoint, 600000000));
             tmpPoint = {};
             if(rain[i].point.y > height + 50) {
                 rain.splice(i, 1);
@@ -241,6 +240,7 @@ function update() {
     Vector.degrees = false;
     for(var i = 0; i < settings.numberRainDrops; i++) {
         rain.push(new Rain());
+        console.log(rain[i]);
         console.log("ADDED RAIN");
     }
 })();

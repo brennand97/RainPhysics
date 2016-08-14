@@ -169,6 +169,37 @@ Vector.prototype.scale = function(number) {
     return this;
 };
 
+Vector.prototype.rotateOnX = function (angle) {
+    if(Vector.degrees) {
+        angle *= (Math.PI / 180);
+    }
+    this.y = (this.y * Math.cos(angle)) - (this.z * Math.sin(angle));
+    this.z = (this.y * Math.sin(angle)) + (this.z * Math.cos(angle));
+    return this;
+};
+
+Vector.prototype.rotateOnY = function (angle) {
+    if(Vector.degrees) {
+        angle *= (Math.PI / 180);
+    }
+    this.x = (this.x * Math.cos(angle)) + (this.z * Math.sin(angle));
+    this.z = (this.z * Math.cos(angle)) - (this.x * Math.sin(angle));
+    return this;
+};
+
+Vector.prototype.rotateOnZ = function (angle) {
+    if(Vector.degrees) {
+        angle *= (Math.PI / 180);
+    }
+    this.x = (this.x * Math.cos(angle)) - (this.y * Math.sin(angle));
+    this.y = (this.x * Math.sin(angle)) + (this.y * Math.cos(angle));
+    return this;
+};
+
+Vector.prototype.rotate2D = function (angle) {
+    return this.rotateOnZ(angle);
+};
+
 Vector.prototype.copy = function () {
     return new Vector(new Point(this.point.x, this.point.y, this.point.z));
 };
