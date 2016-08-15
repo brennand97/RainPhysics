@@ -173,8 +173,8 @@ Vector.prototype.rotateOnX = function (angle) {
     if(Vector.degrees) {
         angle *= (Math.PI / 180);
     }
-    this.y = (this.y * Math.cos(angle)) - (this.z * Math.sin(angle));
-    this.z = (this.y * Math.sin(angle)) + (this.z * Math.cos(angle));
+    this.point.y = (this.point.y * Math.cos(angle)) - (this.point.z * Math.sin(angle));
+    this.point.z = (this.point.y * Math.sin(angle)) + (this.point.z * Math.cos(angle));
     return this;
 };
 
@@ -182,8 +182,8 @@ Vector.prototype.rotateOnY = function (angle) {
     if(Vector.degrees) {
         angle *= (Math.PI / 180);
     }
-    this.x = (this.x * Math.cos(angle)) + (this.z * Math.sin(angle));
-    this.z = (this.z * Math.cos(angle)) - (this.x * Math.sin(angle));
+    this.point.x = (this.point.x * Math.cos(angle)) + (this.point.z * Math.sin(angle));
+    this.point.z = (this.point.z * Math.cos(angle)) - (this.point.x * Math.sin(angle));
     return this;
 };
 
@@ -191,9 +191,21 @@ Vector.prototype.rotateOnZ = function (angle) {
     if(Vector.degrees) {
         angle *= (Math.PI / 180);
     }
-    this.x = (this.x * Math.cos(angle)) - (this.y * Math.sin(angle));
-    this.y = (this.x * Math.sin(angle)) + (this.y * Math.cos(angle));
+    this.point.x = (this.point.x * Math.cos(angle)) - (this.point.y * Math.sin(angle));
+    this.point.y = (this.point.x * Math.sin(angle)) + (this.point.y * Math.cos(angle));
     return this;
+};
+
+Vector.prototype.getXComponet = function () {
+    return new Vector(new Point(this.point.x, 0, 0));
+};
+
+Vector.prototype.getYComponet = function () {
+    return new Vector(new Point(0, this.point.y, 0));
+};
+
+Vector.prototype.getZComponet = function () {
+    return new Vector(new Point(0, 0, this.point.z));
 };
 
 Vector.prototype.rotate2D = function (angle) {
@@ -201,7 +213,7 @@ Vector.prototype.rotate2D = function (angle) {
 };
 
 Vector.prototype.copy = function () {
-    return new Vector(new Point(this.point.x, this.point.y, this.point.z));
+    return new Vector(new Point(this.point.x.valueOf(), this.point.y, this.point.z));
 };
 
 Vector.average = function (vectors) {

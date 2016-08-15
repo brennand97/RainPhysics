@@ -6,13 +6,16 @@
 //Force object
 //*******************************************************************
 
-var Force = function (vector, location) {
+var Force = function (id, vector, location) {
+    this.id = id || Force.NO_ID;
     this.vector = vector || new Vector();
     this.location = location || new Point();
     this.count = 0;
 };
 
-Force.prototype.getVector = function (particle) {
+Force.NO_ID = "NO_ID";
+
+Force.prototype.getVector = function (particle, deltaTime) {
     this.count++;
     return this.vector;
 };
@@ -22,12 +25,11 @@ Force.prototype.relevant = function (particle) {
 };
 
 Force.prototype.copy = function () {
-    this.returnForce = {};
-    this.returnForce = new Force(this.vector, this.location);
-    this.returnForce.getVector = this.getVector;
-    this.returnForce.relevant = this.relevant;
-    this.returnForce.count = this.count;
-    return this.returnForce;
+    var returnForce = new Force(this.id, this.vector, this.location);
+    returnForce.getVector = this.getVector;
+    returnForce.relevant = this.relevant;
+    returnForce.count = this.count;
+    return returnForce;
 }
 
 //===================================================================
@@ -37,11 +39,15 @@ Force.prototype.copy = function () {
 //*******************************************************************
 
 //Gravity
-Force.GRAVITY = new Force(new Vector(new Point(0, 0.005, 0)));
+Force.GRAVITY_ID = "gravity";
+Force.GRAVITY = new Force(Force.GRAVITY_ID, new Vector(new Point(0, 0.005, 0)));
+Force.GRAVITY.getVector = function (particle, deltaTime) {
+    return this.vector.copy().scale(particle.mass);
+};
 
-
-Force.AIR_RESISTANCE = new Force();
-Force.AIR_RESISTANCE.getVector = function (particle) {
+Force.AIR_RESISTANCE_ID = "air_resistance";
+Force.AIR_RESISTANCE = new Force(Force.AIR_RESISTANCE_ID);
+Force.AIR_RESISTANCE.getVector = function (particle, deltaTime) {
     return new Vector(new Point((Math.pow(particle.velocity.point.x, 2) *
         particle.dragCoefficent * -getSign(particle.velocity.point.x)) / particle.scale,
         (Math.pow(particle.velocity.point.y, 2) * particle.dragCoefficent *
@@ -61,22 +67,31 @@ var Particle = function (point, mass, scale, vector, coefficient) {
     this.scale = scale || 1;
     this.forces = [];
     this.dragCoefficent = coefficient || 0;
+    this.netForce = new Force(Particle.NET_FORCE_ID);
+    this.scaledNetForce = new Force(Particle.SCALED_NET_FORCE_ID);
 };
 
+Particle.NET_FORCE_ID = "particle_net_force";
+Particle.SCALED_NET_FORCE_ID = "scaled_particle_net_force";
+
 Particle.prototype.updateParticle = function (deltaTime) {
+
     //Apply all forces to particle
+    this.netForce = new Force(Particle.NET_FORCE_ID, new Vector());
     for(var i = this.forces.length - 1; i >= 0; i--) {
         if(!this.forces[i].relevant(this)) {
             this.forces.splice(i, 1);
             continue;
         }
-        this.velocity.add(this.forces[i].getVector(this).copy().scale(this.scale * (1 / this.mass) * deltaTime));
+        this.netForce.vector.add(this.forces[i].getVector(this, deltaTime));
     }
+    this.scaledNetForce = new Force(Particle.SCALED_NET_FORCE_ID, this.netForce.vector.copy().scale(this.scale));
+
+    this.velocity.add(this.scaledNetForce.getVector(this, deltaTime).copy().scale((1 / this.mass) * deltaTime));
 
     this.point.x += this.velocity.point.x * deltaTime;
     this.point.y += this.velocity.point.y * deltaTime;
     this.point.z += this.velocity.point.z * deltaTime;
-    if(this.point.z < 0) { this.point.z = 0 }
 };
 
 Particle.prototype.getMomentum = function () {
@@ -125,7 +140,6 @@ var Convex = function (origin, vectors, color, scale, rotate) {
     var yl = 0;
     var len = this.vectors.length;
     for(var i = 0; i < len; i++) {
-        this.vectors[i];
         var x = this.vectors[i].point.x * this.scale;
         var y = this.vectors[i].point.y * this.scale;
 
@@ -219,8 +233,6 @@ RenderObject.prototype.renderObject = function (context) {
     var len = this.shapes.length;
     for(var i = 0; i < len; i++) {
         this.shapes[i].render(context, p);
-        //context.fillStyle = this.shapes[i].color;
-        //context.fillRect(this.point.x - (this.width / 2), this.point.y - this.height, this.width, this.height);
     }
 };
 

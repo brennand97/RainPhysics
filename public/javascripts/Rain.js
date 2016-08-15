@@ -79,6 +79,27 @@ var settings = {
 
 var rain = [];                                                                  //Array to hold all the rain drop objects
 
+var circleForceId = "circle_force";
+var circleMaxSpeed = 0.05;
+var circleAclScale = 1;
+var circleForce = new Force(circleForceId);
+circleForce.getVector = function (particle, deltaTime) {
+    if(distance(particle.point.cast2D(), new Point(width / 2, height / 2)) < Math.min(width / 4, height / 4)) {
+        var net = new Vector();
+        var len = particle.forces.length;
+        for(var i = 0; i < len; i++) {
+            if(particle.forces[i].id != this.id) {
+                net.add(particle.forces[i].getVector(particle, deltaTime));
+            }
+        }
+        var out = net.copy().getYComponet().add(new Vector(new Point(0, circleAclScale * (particle.mass / deltaTime) *
+            (particle.velocity.point.y - (circleMaxSpeed * particle.scale)), 0))).scale(-1);
+        return out;
+    } else {
+        return new Vector();
+    }
+};
+
 //*******************************************************************
 //Define the rain drop object and its methods
 //*******************************************************************
@@ -94,7 +115,7 @@ var Rain = function (point) {
         new Vector(new Point(0, -h))], Rain.defaultColor, s);
     RenderObject.call(this, p, [this.convex]);
 
-    this.color = Rain.defaultColor;
+    this.color = this.shapes[0].color = Rain.defaultColor;
 
     this.dragCoefficent = settings.rainDropDragCoefficient;
     this.velocity = new Vector(new Point(0, this.scale * settings.initialRainSpeed));
@@ -102,6 +123,7 @@ var Rain = function (point) {
 
     this.forces.push(Force.GRAVITY.copy());
     this.forces.push(Force.AIR_RESISTANCE.copy());
+    this.forces.push(circleForce.copy());
 };
 
 Rain.prototype = new RenderObject();
@@ -113,15 +135,8 @@ Rain.defaultColor = "rgba(" + settings.rainColorRed + ","
 
 Rain.prototype.updateRain = function (elapsed) {
     this.scale = (settings.maxParallax - this.point.z) / settings.maxParallax;
-    this.width = settings.widthRainDrops * this.scale;
-    this.height = settings.heightRainDrops * this.scale;
 
     this.updateParticle(elapsed);
-};
-
-Rain.prototype.renderRain = function (context) {
-    context.fillStyle = this.color;
-    context.fillRect(this.point.x - (this.width / 2), this.point.y - this.height, this.width, this.height);
 };
 
 //===================================================================
@@ -147,12 +162,13 @@ var mouseVelocity = [];     //Array that holds vectors that represent mouse velo
 var currentPoint;           //Holds location of the mouse for current cycle
 var previousPoint;          //Holds location of the mouse for previous cycle
 var index = 0;              //Holds current index in the mouseVelocity array
+var mouseWindForceId =  "mouse_wind";
 
 //*******************************************************************
 //Define the main update function
 //*******************************************************************
 
-function update() {
+function update(elapsed) {
 
     //***************************************************************
     //Calculate mouse velocity
@@ -172,7 +188,7 @@ function update() {
     }
 
     if(mouseVelocity.length >= settings.mouseAverageLength) {
-        var mouseSum = new Force(Vector.average(mouseVelocity));
+        var mouseSum = new Force(mouseWindForceId, Vector.average(mouseVelocity).getXComponet().scale(settings.mouseForceScale));
         mouseSum.relevant = function () {
             if(this.count > 0) {
                 return false;
@@ -181,8 +197,6 @@ function update() {
                 return true;
             }
         };
-        mouseSum.vector.scale(settings.mouseForceScale);
-        mouseSum.vector.point.y = 0;
     }
 
     //===============================================================
@@ -213,7 +227,7 @@ function update() {
 
         //Check to see if rain drop needs to be removed
 
-        if(rain[i].point.y > height - settings.bottomPadding  || distance(rain[i].point.cast2D(), new Point(width / 2, height / 2)) < Math.min(width / 4, height / 4) ) {
+        if(rain[i].point.y > height - settings.bottomPadding  /*|| distance(rain[i].point.cast2D(), new Point(width / 2, height / 2)) < Math.min(width / 4, height / 4)*/ ) {
             var tmpPoint = new Point(rain[i].point.x, rain[i].point.y + 1, rain[i].point.z);
             rain[i].collision(new Particle(tmpPoint, 600000000));
             tmpPoint = {};
@@ -249,7 +263,12 @@ function update() {
 
 var current = (new Date()).getTime();       //current time for current cycle
 var previous = current;                     //previous time for previous cycle
-var elapsed = 0;                            //elapsed time between cycles
+var deltaTime = 0;                            //elapsed time between cycles
+var averageDeltaTime = 20;
+
+var deltaTimes = [];
+var deltaTimeIndex = 0;
+var deltaTimeArrayLength = 5;
 
 //*******************************************************************
 //Define and call the main loop function
@@ -257,11 +276,25 @@ var elapsed = 0;                            //elapsed time between cycles
 
 (function loop() {
     current = (new Date()).getTime();
-    elapsed = current - previous;
+    deltaTime = current - previous;
     previous = current;
 
+    deltaTimes[deltaTimeIndex] = deltaTime;
+    deltaTimeIndex++;
+    if(deltaTimeIndex > deltaTimeArrayLength - 1) {
+        deltaTimeIndex = 0;
+    }
+    if(deltaTimes.length === deltaTimeArrayLength) {
+        var avg = 0;
+        for(var i = 0; i < deltaTimeArrayLength; i++) {
+            avg += deltaTimes[i];
+        }
+        avg /= deltaTimeArrayLength;
+        averageDeltaTime = avg;
+    }
+
     requestAnimFrame(loop);
-    update();
+    update(deltaTime);
     render(context);
 })();
 
