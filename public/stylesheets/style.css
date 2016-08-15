@@ -1,22 +1,84 @@
+root {
+    font-size: 16px;
+}
+
 body {
-    padding: 50px;
-    font: 14px "Lucida Grande", Helvetica, Arial, sans-serif;
+    padding: 3.125em;
+    font: 0.875em "Lucida Grande", Helvetica, Arial, sans-serif;
 }
 
 a {
     color: #00B7FF;
 }
 
+#dat-gui {
+    z-index: 3;
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 400px;
+}
+
 #welcome {
     z-index: 2;
     position: absolute;
-    top: 0px;
-    left: 0px;
-    margin: 20px;
-    padding: 10px;
+    top: 0;
+    left: 0;
+    margin: 50px
+}
+
+#welcome-inner.large {
+    padding: 0.625em;
+}
+
+#welcome.large, #welcome-inner.large {
     background: rebeccapurple;
+    color: whitesmoke;
+}
+
+#welcome-inner.large {
     font-weight: 600;
-    font-size: 28px;
+    font-size: 1.75em;
+}
+
+#welcome.small, #welcome-inner.small {
+    background: transparent;
+    font-size: 0em;
+    width: 100px;
+    height: 100px;
+}
+
+.small#welcome::before {
+    content: "";
+    width: 100px;
+    height: 100px;
+    border: 10px rebeccapurple;
+    border-radius: 50px;
+}
+
+#welcome.grow:hover #welcome-inner.grow:hover {
+    /*transform: scale(1.05);*/
+}
+
+.visible {
+    transition: opacity 1s ease-in-out;
+    opacity: 1;
+}
+
+.hide {
+    transition: opacity 1s ease-in-out;
+    opacity: 0;
+}
+
+#loading-message {
+    z-index: 2;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-right: -50%;
+    transform: translate(-50%, -200%);
+    font-weight: bold;
+    font-size: 2em;
     color: whitesmoke;
 }
 

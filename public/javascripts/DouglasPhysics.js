@@ -69,12 +69,18 @@ var Particle = function (point, mass, scale, vector, coefficient) {
     this.dragCoefficent = coefficient || 0;
     this.netForce = new Force(Particle.NET_FORCE_ID);
     this.scaledNetForce = new Force(Particle.SCALED_NET_FORCE_ID);
+    this.collisionVector = new Vector();
 };
 
 Particle.NET_FORCE_ID = "particle_net_force";
 Particle.SCALED_NET_FORCE_ID = "scaled_particle_net_force";
 
 Particle.prototype.updateParticle = function (deltaTime) {
+
+    if(this.collisionVector) {
+        this.velocity.add(this.collisionVector);
+        this.collisionVector = new Vector();
+    }
 
     //Apply all forces to particle
     this.netForce = new Force(Particle.NET_FORCE_ID, new Vector());
@@ -98,8 +104,32 @@ Particle.prototype.getMomentum = function () {
     return this.velocity.magnitude() * this.mass;
 };
 
+Particle.prototype.removeForce = function (id) {
+    var len = this.forces.length;
+    for(var i = len; i >= 0; i--) {
+        if(this.forces[i].id === id) {
+            this.forces.splice(i, 1);
+        }
+    }
+};
+
+Particle.prototype.containsForce = function (id) {
+    var len = this.forces.length;
+    for(var i = 0; i < len; i++) {
+        if(this.forces[i].id === id) {
+            return true;
+        }
+    }
+    return false;
+};
+
 Particle.VERY_LAGE = 1000;
 
+/**
+ * @deprecated
+ * @param particle
+ * @param inelastic
+ */
 Particle.prototype.collision = function (particle, inelastic) {
     if(!inelastic) {
         inelastic = 1;
@@ -121,16 +151,58 @@ Particle.prototype.collision = function (particle, inelastic) {
         (particle.mass * particleDirectionVelocity.magnitude()))) / (this.mass + particle.mass)));
 };
 
+Particle.collide = function (particle, particles, inelastic) {
+    if(!inelastic) {
+        inelastic = 1;
+    }
+    var particle1 = particle;
+    var particle2 = particles.pop();
+
+    var impactVector = (new Vector(particle1.point.cast2D(), particle2.point.cast2D())).unit();
+    var particle1DirectionVelocity = particle1.velocity.projection(impactVector);
+    var particle2DirectionVelocity = particle2.velocity.projection(impactVector);
+
+    if(!particle1.collisionVector) {
+        particle1.collisionVector = new Vector();
+    }
+    if(!particle2.collisionVector) {
+        particle2.collisionVector = new Vector();
+    }
+
+    if (particle2.mass === Infinity || particle2.mass > particle1.mass * Particle.VERY_LAGE) {
+        particle1.collisionVector.subtract(particle1DirectionVelocity);
+        particle1.collisionVector.add(particle1DirectionVelocity.scale(-1)).add(particle2DirectionVelocity);
+        return;
+    } else if (particle1.mass === Infinity || particle1.mass > particle2.mass * Particle.VERY_LAGE){
+        particle2.collisionVector.subtract(particle2DirectionVelocity);
+        particle2.collisionVector.add(particle2DirectionVelocity.scale(-1)).add(particle1DirectionVelocity);
+        return;
+    }
+
+    particle1.collisionVector.subtract(particle1DirectionVelocity);
+    particle1.collisionVector.add(impactVector.copy().scale(-1* (((inelastic * particle2.mass * (particle2DirectionVelocity.magnitude() -
+        particle1DirectionVelocity.magnitude())) + (particle1DirectionVelocity.magnitude() * particle1.mass) +
+        (particle2.mass * particle2DirectionVelocity.magnitude()))) / (particle1.mass + particle2.mass)));
+
+    particle2.collisionVector.subtract(particle2DirectionVelocity);
+    particle2.collisionVector.add(impactVector.copy().scale((((inelastic * particle1.mass * (particle1DirectionVelocity.magnitude() -
+        particle2DirectionVelocity.magnitude())) + (particle1DirectionVelocity.magnitude() * particle1.mass) +
+        (particle2.mass * particle2DirectionVelocity.magnitude()))) / (particle1.mass + particle2.mass)));
+
+    if(particles.length > 0) {
+        Particle.collide(particle, particles, inelastic);
+    }
+};
+
 //===================================================================
 
 //*******************************************************************
 //Convex Shape
 //*******************************************************************
 
-var Convex = function (origin, vectors, color, scale, rotate) {
+var Convex = function (origin, vectors, scale, rotate) {
     this.origin = origin || new Vector();
     this.vectors = vectors || [];
-    this.color = color || "rgba(0,0,0,255)";
     this.scale = scale || 1;
     this.rotate = rotate || 0;
 
@@ -158,12 +230,13 @@ var Convex = function (origin, vectors, color, scale, rotate) {
     this.maxHeight = yh - yl;
 };
 
-Convex.prototype.render = function (context, point) {
+Convex.prototype.render = function (context, point, color) {
     var p = point || new Point();
+    var c = color || "rgba(0,0,0,255)";
 
     context.save();
 
-    context.fillStyle = this.color;
+    context.fillStyle = c;
 
     context.beginPath();
     context.moveTo(this.origin.x + p.x + (this.vectors[0].point.x * this.scale), this.origin.y + p.y + (this.vectors[0].point.y * this.scale));
@@ -195,9 +268,10 @@ Convex.prototype.copy = function () {
 //Render Object
 //*******************************************************************
 
-var RenderObject = function(point, shapes) {
+var RenderObject = function(point, shapes, colors) {
     Particle.call(this, point);
     this.shapes = shapes || [];
+    this.colors = colors || [];
 
     var xh = 0;
     var xl = 0;
@@ -232,7 +306,7 @@ RenderObject.prototype.renderObject = function (context) {
     var p = this.point;
     var len = this.shapes.length;
     for(var i = 0; i < len; i++) {
-        this.shapes[i].render(context, p);
+        this.shapes[i].render(context, p, this.colors[i]);
     }
 };
 

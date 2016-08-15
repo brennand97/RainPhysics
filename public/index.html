@@ -8,6 +8,9 @@
     <!-- other browsers -->
     <link rel="icon" type="image/x-icon" href="favicon.ico" />
     <link rel="stylesheet" type="text/css" href="stylesheets/style.css">
+    <script type="text/javascript" src="javascripts/prefixfree.min.js"></script>
+    <script type="text/javascript" src="javascripts/QuadTree.js"></script>
+    <script type="text/javascript" src="javascripts/dat.gui.min.js"></script>
     <script type="text/javascript" src="javascripts/DouglasMath.js"></script>
     <script type="text/javascript" src="javascripts/DouglasPhysics.js"></script>
     <script>
@@ -23,6 +26,14 @@
 <body>
     <canvas id="the-rain-canvas" width="50" height="50" style="position : absolute; top : 0px; left : 0px;"></canvas>
     <script type="text/javascript" src="javascripts/Rain.js"></script>
-    <h id="welcome" >Welcome to a rainy day</h>
+    <div id="welcome" class="grow large" >
+        <div id="welcome-inner" class="grow large">
+            Welcome to a rainy day
+        </div>
+    </div>
+
+    <div id="dat-gui" ></div>
+
+    <p id="loading-message" class="visible" >The storm is brewing...</p>
 </body>
 </html>

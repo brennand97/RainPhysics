@@ -13,39 +13,118 @@ requestAnimFrame = (function() {
 })();
 
 var canvas = document.getElementById("the-rain-canvas");
-var context = canvas.getContext("2d");
+var context = canvas.getContext("2d")
 
 //*******************************************************************
 //Main Code here
 //*******************************************************************
 
 var settings = {
-                                            //Color of the rain
-    rainColorRed: 0,                        //red component
-    rainColorGreen: 191,                    //green component
-    rainColorBlue: 255,                     //blue component
-    rainColorAlpha: 255,                    //alpha component
+    //Color of the rain
+    defaultRainColor: "rgba(0,191,255,255)",
+    rainColor: "rgba(0,191,255,255)",
 
-    numberRainDrops: 750,                   //max number of rain drops falling at once
-    initialRainSpeed: 1.25,                 //initial rain speed factor
+    //max number of rain drops falling at once
+    numberRainDrops: 750,
+    //initial rain speed factor
+    initialRainSpeed: 1.25,
 
-    widthRainDrops: 4,                      //width of the rain drops in pixels
-    heightRainDrops: 20,                    //height of the rain drops in pixels
+    //width of the rain drops in pixels
+    widthRainDrops: 4,
+    //height of the rain drops in pixels
+    heightRainDrops: 20,
 
-                                            //Parallax ratio
+    //parallax that defines deepest rain
     parallax: 70,                           //parallax that defines deepest rain
-    maxParallax: 100,                       //maximum total parallax, used to create scale ratio
+    //maximum total parallax, used to create scale ratio
+    maxParallax: 100,
 
-    bottomPadding: 10,                      //number of pixels from the bottom that the rain stops
+    //number of pixels from the bottom that the rain stops
+    bottomPadding: 10,
 
-    mouseAverageLength: 5,                  //number of mouse movement segments used to take average velocity of mouse
-    mouseForceScale: 0.001,                 //scale factor for the mouse force (wind) added to rain
-    mouseAffectDistance: 40000,             //maximum square distance away from the mouse that raindrops will be affected by wind force
+    //number of mouse movement segments used to take average velocity of mouse
+    mouseAverageLength: 5,
+    //scale factor for the mouse force (wind) added to rain
+    mouseForceScale: 0.001,
+    //maximum square distance away from the mouse that raindrops will be affected by wind force
+    mouseAffectDistance: 40000,
 
-    rainDropDragCoefficient: 0.009          //Rain drop drag coefficient for air resistance on rain drop
+    //Rain drop drag coefficient for air resistance on rain drop
+    rainDropDragCoefficient: 0.009
 };
 
-var rain = [];                                                                  //Array to hold all the rain drop objects
+var guiFunctions = {
+    //Flag to auto change drops with window
+    autoDropCount: true,
+
+    //Clear all rain
+    clearRain: function () {
+        rain = [];
+    },
+
+    //Resets rain back to default color
+    resetRainColor: function () {
+        settings.rainColor = settings.defaultRainColor;
+    },
+    //Sets if rain changes immediately or waits for new particles
+    immediateRainColorChange: false,
+
+    //flag for center sphere force
+    centerCircle: false,
+
+    //Option to render root QuadTree nodes or not
+    renderQuadTree: false
+};
+
+var gui = {};
+var defineGui = function (domElement) {
+    gui = new dat.GUI({ autoPlace: false });
+    domElement.appendChild(gui.domElement);
+    gui.width = 400;
+
+    var rain = gui.addFolder("Rain");
+
+    var rainNumController = rain.add(settings, "numberRainDrops");
+    rainNumController.min(0);
+    rainNumController.onChange(function (value) {
+        guiFunctions.autoDropCount = false;
+    });
+
+    rain.add(guiFunctions, "autoDropCount").listen().onChange(function (value) {
+        if(value) {
+            settings.numberRainDrops = Math.floor(Math.floor(width/4) * dropFactor);
+            rainNumController.updateDisplay();
+        }
+    });
+    rain.add(guiFunctions, "clearRain");
+
+    var rainColorController = rain.addColor(settings, "rainColor");
+    rainColorController.listen();
+    rainColorController.onChange(function (value) {
+        if(guiFunctions.immediateRainColorChange) {
+            var len = rain.length;
+            for(var i = 0; i < len; i++) {
+                rain[i].colors[0] = value;
+            }
+        }
+    });
+
+    rain.add(guiFunctions, "immediateRainColorChange");
+    rain.add(guiFunctions, "resetRainColor");
+
+    var forces = gui.addFolder("Forces");
+    forces.add(guiFunctions, "centerCircle");
+
+    var collision = gui.addFolder("Collisions");
+    collision.add(guiFunctions, "renderQuadTree");
+};
+
+var rain = [];                              //Array to hold all the rain drop objects
+var tree = {};
+
+//*******************************************************************
+//Defined cool forces
+//*******************************************************************
 
 var circleForceId = "circle_force";
 var circleMaxSpeed = 0.05;
@@ -67,6 +146,20 @@ circleForce.getVector = function (particle, deltaTime) {
         return new Vector();
     }
 };
+circleForce.relevant = function (particle) {
+    if(!guiFunctions.centerCircle) {
+        return false;
+    }
+    if(particle) {
+        if(particle.point.x + particle.width < (width / 2) - Math.min(width / 4, height / 4) ||
+            particle.point.x > (width / 2) + Math.min(width / 4, height / 4)) {
+            return false;
+        }
+    }
+    return true;
+};
+
+//===================================================================
 
 //*******************************************************************
 //Define the rain drop object and its methods
@@ -80,10 +173,10 @@ var Rain = function (point) {
     this.convex = new Convex(new Point(), [new Vector(0, 0),
         new Vector(new Point(w, 0)),
         new Vector(new Point(w, -h)),
-        new Vector(new Point(0, -h))], Rain.defaultColor, s);
-    RenderObject.call(this, p, [this.convex]);
+        new Vector(new Point(0, -h))], s);
+    RenderObject.call(this, p, [this.convex], [settings.rainColor]);
 
-    this.color = this.shapes[0].color = Rain.defaultColor;
+    this.color = this.shapes[0].color = settings.rainColor;
 
     this.dragCoefficent = settings.rainDropDragCoefficient;
     this.velocity = new Vector(new Point(0, this.scale * settings.initialRainSpeed));
@@ -91,20 +184,12 @@ var Rain = function (point) {
 
     this.forces.push(Force.GRAVITY.copy());
     this.forces.push(Force.AIR_RESISTANCE.copy());
-    this.forces.push(circleForce.copy());
 };
 
 Rain.prototype = new RenderObject();
 
-Rain.defaultColor = "rgba(" + settings.rainColorRed + ","
-    + settings.rainColorGreen + ","
-    + settings.rainColorBlue + ","
-    + settings.rainColorAlpha + ")";
-
-Rain.prototype.updateRain = function (elapsed) {
-    this.scale = (settings.maxParallax - this.point.z) / settings.maxParallax;
-
-    this.updateParticle(elapsed);
+Rain.prototype.toQuadTreeItem = function () {
+    return { x : this.point.x, y : this.point.y, width : this.width, height : this.height };
 };
 
 //===================================================================
@@ -119,6 +204,10 @@ function render(context) {
     var avg = 0;
     for(var i = rain.length - 1; i >= 0; i--) {
         rain[i].renderObject(context);
+    }
+
+    if(guiFunctions.renderQuadTree) {
+        QuadTree.renderQuad(context, tree);
     }
 
     context.restore();
@@ -170,6 +259,19 @@ function update(elapsed) {
     //===============================================================
 
     //***************************************************************
+    //Fill Quad Tree
+    //***************************************************************
+
+    tree = new QuadTree({ x : 0, y : 0, width : width, height : height }, false, 10, 5);
+
+    var len = rain.length;
+    for(var i = 0; i < len; i++) {
+        tree.insert(rain[i].toQuadTreeItem());
+    }
+
+    //===============================================================
+
+    //***************************************************************
     //Handle updating rain drops
     //***************************************************************
 
@@ -186,12 +288,12 @@ function update(elapsed) {
             rain[i].forces.push(mouseSum.copy());
         } else {
             //Reset color of affected rain drops
-            rain[i].color = Rain.defaultColor;
+            rain[i].color = settings.rainColor;
         }
 
         //Call rain drop's update function
 
-        rain[i].updateRain(elapsed);
+        rain[i].updateParticle(elapsed);
 
         //Check to see if rain drop needs to be removed
 
@@ -206,10 +308,28 @@ function update(elapsed) {
                 }
             }
         }
+
     }
 
     //===============================================================
 
+    //Add any new rain
+    if(rain.length < settings.numberRainDrops) {
+        var num = settings.numberRainDrops - rain.length;
+        for(var i = 0; i < num; i++) {
+            rain.push(new Rain());
+        }
+    }
+
+    //Any new forces
+    if(guiFunctions.centerCircle) {
+        var len = rain.length;
+        for(var i = 0; i < len; i++) {
+            if(!rain[i].containsForce(circleForceId)) {
+                rain[i].forces.push(circleForce.copy());
+            }
+        }
+    }
 }
 
 //===================================================================
@@ -221,12 +341,23 @@ function update(elapsed) {
 var dropFactor = 1.2;
 var setup = function () {
     Vector.degrees = false;
+
     settings.numberRainDrops = Math.floor(Math.floor(width/4) * dropFactor);
     for(var i = 0; i < settings.numberRainDrops; i++) {
         rain.push(new Rain());
         console.log("Added Rain");
     }
     console.log(rain.length + " total rain particles");
+
+    var loading = document.getElementById("loading-message");
+    //document.body.removeChild(loading);
+    loading.classList.remove("visible");
+    loading.classList.add("hide");
+
+    var datGuiElement = document.getElementById("dat-gui");
+
+    defineGui(datGuiElement);
+
     loop();
 };
 window.onload = setup;
@@ -278,8 +409,9 @@ var height = 0;
 window.onresize = function onresize() {
     width = canvas.width = window.innerWidth;
     height = canvas.height = window.innerHeight;
-    settings.numberRainDrops = Math.floor(Math.floor(width/4) * dropFactor);
-    console.log("Rain drops updated to " + settings.numberRainDrops);
+    if(guiFunctions.autoDropCount) {
+        settings.numberRainDrops = Math.floor(Math.floor(width/4) * dropFactor);
+    }
 };
 
 window.onresize();
@@ -290,15 +422,11 @@ var mouseDown = false;
 window.addEventListener("mousedown", function (event) {
     mouseDown = true;
     settings.mouseForceScale *= 10;
-    console.log("Mouse down");
-    console.log(settings.mouseForceScale);
 });
 
 window.addEventListener("mouseup", function (event) {
     mouseDown = false;
     settings.mouseForceScale /= 10;
-    console.log("Mouse up");
-    console.log(settings.mouseForceScale);
 });
 
 window.onmousemove = function onmousemove(event) {

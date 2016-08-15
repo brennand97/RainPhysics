@@ -418,3 +418,46 @@
     window.QuadTree = QuadTree;
 
 }(window));
+
+QuadTree.renderQuad = function (context, tree)
+{
+    var g = context;
+    g.save();
+    g.strokeStyle = "rgba(255,255,255,255)";
+
+    QuadTree.drawNode(g, tree.root);
+
+    g.restore()
+}
+
+QuadTree.drawNode = function (context, node)
+{
+    var bounds = node._bounds;
+    var g = context;
+
+    var x = abs(bounds.x)  + 0.5;
+    var y = abs(bounds.y) + 0.5;
+    var w = bounds.width;
+    var h = bounds.height;
+
+    g.beginPath();
+    g.moveTo(x, y);
+    g.lineTo(x + w, y);
+    g.lineTo(x + w, y + h);
+    g.lineTo(x, y + h);
+    g.lineTo(x, y);
+    g.stroke();
+
+    var len = node.nodes.length;
+
+    for(var i = 0; i < len; i++)
+    {
+        QuadTree.drawNode(context, node.nodes[i]);
+    }
+
+};
+
+var abs = function (num)
+{
+    return (num < 0 ? -num : num);
+}
