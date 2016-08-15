@@ -15,38 +15,6 @@ requestAnimFrame = (function() {
 var canvas = document.getElementById("the-rain-canvas");
 var context = canvas.getContext("2d");
 
-var width = 0;
-var height = 0;
-
-window.onresize = function onresize() {
-    width = canvas.width = window.innerWidth;
-    height = canvas.height = window.innerHeight;
-};
-
-window.onresize();
-
-var mouse = new Point(0, 0);
-var mouseDown = false;
-
-window.addEventListener("mousedown", function (event) {
-    mouseDown = true;
-    settings.mouseForceScale *= 10;
-    console.log("Mouse down");
-    console.log(settings.mouseForceScale);
-});
-
-window.addEventListener("mouseup", function (event) {
-    mouseDown = false;
-    settings.mouseForceScale /= 10;
-    console.log("Mouse up");
-    console.log(settings.mouseForceScale);
-});
-
-window.onmousemove = function onmousemove(event) {
-    mouse.x = event.clientX;
-    mouse.y = event.clientY;
-};
-
 //*******************************************************************
 //Main Code here
 //*******************************************************************
@@ -58,14 +26,14 @@ var settings = {
     rainColorBlue: 255,                     //blue component
     rainColorAlpha: 255,                    //alpha component
 
-    numberRainDrops: 1000,                   //max number of rain drops falling at once
+    numberRainDrops: 750,                   //max number of rain drops falling at once
     initialRainSpeed: 1.25,                 //initial rain speed factor
 
     widthRainDrops: 4,                      //width of the rain drops in pixels
     heightRainDrops: 20,                    //height of the rain drops in pixels
 
                                             //Parallax ratio
-    parallax: 80,                           //parallax that defines deepest rain
+    parallax: 70,                           //parallax that defines deepest rain
     maxParallax: 100,                       //maximum total parallax, used to create scale ratio
 
     bottomPadding: 10,                      //number of pixels from the bottom that the rain stops
@@ -148,7 +116,7 @@ Rain.prototype.updateRain = function (elapsed) {
 function render(context) {
     context.save();
     context.clearRect(0, 0, width, height);
-
+    var avg = 0;
     for(var i = rain.length - 1; i >= 0; i--) {
         rain[i].renderObject(context);
     }
@@ -250,14 +218,18 @@ function update(elapsed) {
 //Define and call the setup function
 //*******************************************************************
 
-(function setup() {
+var dropFactor = 1.2;
+var setup = function () {
     Vector.degrees = false;
+    settings.numberRainDrops = Math.floor(Math.floor(width/4) * dropFactor);
     for(var i = 0; i < settings.numberRainDrops; i++) {
         rain.push(new Rain());
         console.log("Added Rain");
     }
     console.log(rain.length + " total rain particles");
-})();
+    loop();
+};
+window.onload = setup;
 
 //===================================================================
 
@@ -274,7 +246,7 @@ var deltaTimeArrayLength = 5;
 //Define and call the main loop function
 //*******************************************************************
 
-(function loop() {
+function loop() {
     current = (new Date()).getTime();
     deltaTime = current - previous;
     previous = current;
@@ -296,6 +268,40 @@ var deltaTimeArrayLength = 5;
     requestAnimFrame(loop);
     update(deltaTime);
     render(context);
-})();
+};
 
 //===============================================================
+
+var width = 0;
+var height = 0;
+
+window.onresize = function onresize() {
+    width = canvas.width = window.innerWidth;
+    height = canvas.height = window.innerHeight;
+    settings.numberRainDrops = Math.floor(Math.floor(width/4) * dropFactor);
+    console.log("Rain drops updated to " + settings.numberRainDrops);
+};
+
+window.onresize();
+
+var mouse = new Point(0, 0);
+var mouseDown = false;
+
+window.addEventListener("mousedown", function (event) {
+    mouseDown = true;
+    settings.mouseForceScale *= 10;
+    console.log("Mouse down");
+    console.log(settings.mouseForceScale);
+});
+
+window.addEventListener("mouseup", function (event) {
+    mouseDown = false;
+    settings.mouseForceScale /= 10;
+    console.log("Mouse up");
+    console.log(settings.mouseForceScale);
+});
+
+window.onmousemove = function onmousemove(event) {
+    mouse.x = event.clientX;
+    mouse.y = event.clientY;
+};
