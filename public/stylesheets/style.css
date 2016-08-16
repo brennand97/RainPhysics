@@ -19,6 +19,16 @@ a {
     width: 400px;
 }
 
+#fps-counter {
+    z-index: 2;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    color: whitesmoke;
+    font-size: 12px;
+    margin: 10px;
+}
+
 #welcome {
     z-index: 2;
     position: absolute;

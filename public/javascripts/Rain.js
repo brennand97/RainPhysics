@@ -22,7 +22,7 @@ var context = canvas.getContext("2d")
 var settings = {
     //Color of the rain
     defaultRainColor: "rgba(0,191,255,255)",
-    rainColor: "rgba(0,191,255,255)",
+    rainColor: "rgba(5,191,255,255)",
 
     //max number of rain drops falling at once
     numberRainDrops: 750,
@@ -73,7 +73,10 @@ var guiFunctions = {
     centerCircle: false,
 
     //Option to render root QuadTree nodes or not
-    renderQuadTree: false
+    renderQuadTree: false,
+
+    //flag to show fps count
+    showFpsCount: false
 };
 
 var gui = {};
@@ -98,16 +101,7 @@ var defineGui = function (domElement) {
     });
     rain.add(guiFunctions, "clearRain");
 
-    var rainColorController = rain.addColor(settings, "rainColor");
-    rainColorController.listen();
-    rainColorController.onChange(function (value) {
-        if(guiFunctions.immediateRainColorChange) {
-            var len = rain.length;
-            for(var i = 0; i < len; i++) {
-                rain[i].colors[0] = value;
-            }
-        }
-    });
+    rain.addColor(settings, "rainColor").listen();
 
     rain.add(guiFunctions, "immediateRainColorChange");
     rain.add(guiFunctions, "resetRainColor");
@@ -117,6 +111,9 @@ var defineGui = function (domElement) {
 
     var collision = gui.addFolder("Collisions");
     collision.add(guiFunctions, "renderQuadTree");
+
+    var performance = gui.addFolder("Performance");
+    performance.add(guiFunctions, "showFpsCount");
 };
 
 var rain = [];                              //Array to hold all the rain drop objects
@@ -277,7 +274,9 @@ function update(elapsed) {
 
     for(var i = rain.length - 1; i >= 0; i--) {
 
-        //Add forces to each rain drop
+        if(guiFunctions.immediateRainColorChange) {
+            rain[i].colors[0] = settings.rainColor;
+        }
 
         //check to see if rain drop is affected by mouse wind
         if(mouseSum && sqrDistance(mouse, rain[i].point.cast2D()) < 10000) {
@@ -339,13 +338,13 @@ function update(elapsed) {
 //*******************************************************************
 
 var dropFactor = 1.2;
+var fpsCounter;
 var setup = function () {
     Vector.degrees = false;
 
     settings.numberRainDrops = Math.floor(Math.floor(width/4) * dropFactor);
     for(var i = 0; i < settings.numberRainDrops; i++) {
         rain.push(new Rain());
-        console.log("Added Rain");
     }
     console.log(rain.length + " total rain particles");
 
@@ -355,8 +354,9 @@ var setup = function () {
     loading.classList.add("hide");
 
     var datGuiElement = document.getElementById("dat-gui");
-
     defineGui(datGuiElement);
+
+    fpsCounter = document.getElementById("fps-counter");
 
     loop();
 };
@@ -368,10 +368,11 @@ var current = (new Date()).getTime();       //current time for current cycle
 var previous = current;                     //previous time for previous cycle
 var deltaTime = 0;                            //elapsed time between cycles
 var averageDeltaTime = 20;
+var maxDeltaTime , minDeltaTime;
 
 var deltaTimes = [];
 var deltaTimeIndex = 0;
-var deltaTimeArrayLength = 5;
+var deltaTimeArrayLength = 10;
 
 //*******************************************************************
 //Define and call the main loop function
@@ -381,6 +382,19 @@ function loop() {
     current = (new Date()).getTime();
     deltaTime = current - previous;
     previous = current;
+
+    if(!minDeltaTime) {
+        minDeltaTime = deltaTime;
+    }
+    if(!maxDeltaTime) {
+        maxDeltaTime = deltaTime;
+    }
+
+    if(deltaTime < maxDeltaTime) {
+        maxDeltaTime = deltaTime;
+    } else if(deltaTime > minDeltaTime) {
+        minDeltaTime = deltaTime;
+    }
 
     deltaTimes[deltaTimeIndex] = deltaTime;
     deltaTimeIndex++;
@@ -394,6 +408,14 @@ function loop() {
         }
         avg /= deltaTimeArrayLength;
         averageDeltaTime = avg;
+    }
+
+    if(guiFunctions.showFpsCount) {
+        fpsCounter.innerHTML = "FPS: " + (1 / (averageDeltaTime / 1000)).toFixed(2) +
+                                "   Max: " + (1 / (maxDeltaTime / 1000)).toFixed(2) +
+                                "   Min: " + (1 / (minDeltaTime / 1000)).toFixed(2);
+    } else {
+        fpsCounter.innerHTML = "";
     }
 
     requestAnimFrame(loop);
@@ -418,15 +440,22 @@ window.onresize();
 
 var mouse = new Point(0, 0);
 var mouseDown = false;
+var increased = false;
 
 window.addEventListener("mousedown", function (event) {
     mouseDown = true;
-    settings.mouseForceScale *= 10;
+    if(!increased) {
+        increased = true;
+        settings.mouseForceScale *= 10;
+    }
 });
 
 window.addEventListener("mouseup", function (event) {
     mouseDown = false;
-    settings.mouseForceScale /= 10;
+    if(increased) {
+        increased = false;
+        settings.mouseForceScale /= 10;
+    }
 });
 
 window.onmousemove = function onmousemove(event) {
