@@ -14,6 +14,8 @@ var Force = function (id, vector, location) {
 };
 
 Force.NO_ID = "NO_ID";
+Force.NET_FORCE_ID = "object_net_force";
+Force.SCALED_NET_FORCE_ID = "scaled_object_net_force";
 
 Force.prototype.getVector = function (particle, deltaTime) {
     this.count++;
@@ -30,7 +32,7 @@ Force.prototype.copy = function () {
     returnForce.relevant = this.relevant;
     returnForce.count = this.count;
     return returnForce;
-}
+};
 
 //===================================================================
 
@@ -57,23 +59,33 @@ Force.AIR_RESISTANCE.getVector = function (particle, deltaTime) {
 //===================================================================
 
 //*******************************************************************
-//Particle Object
+//General object that stores location data
 //*******************************************************************
 
-var Particle = function (point, mass, scale, vector, coefficient) {
+var PhysicsObject = function (point, mass, scale, vector) {
     this.point = point || new Point();
     this.mass = mass || 1;
     this.velocity = vector || new Vector();
     this.scale = scale || 1;
     this.forces = [];
-    this.dragCoefficent = coefficient || 0;
     this.netForce = new Force(Particle.NET_FORCE_ID);
     this.scaledNetForce = new Force(Particle.SCALED_NET_FORCE_ID);
-    this.collisionVector = new Vector();
 };
 
-Particle.NET_FORCE_ID = "particle_net_force";
-Particle.SCALED_NET_FORCE_ID = "scaled_particle_net_force";
+PhysicsObject.update()
+
+//===================================================================
+
+//*******************************************************************
+//Particle Object
+//*******************************************************************
+
+var Particle = function (point, mass, scale, vector, coefficient) {
+    this.dragCoefficent = coefficient || 0;
+    PhysicsObject.call(this, point, mass, scale, vector);
+};
+
+Particle.prototype = new PhysicsObject();
 
 Particle.prototype.updateParticle = function (deltaTime) {
 

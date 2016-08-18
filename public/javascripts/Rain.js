@@ -136,7 +136,7 @@ circleForce.getVector = function (particle, deltaTime) {
                 net.add(particle.forces[i].getVector(particle, deltaTime));
             }
         }
-        var out = net.copy().getYComponet().add(new Vector(new Point(0, circleAclScale * (particle.mass / deltaTime) *
+        var out = net.copy().getYComponent().add(new Vector(new Point(0, circleAclScale * (particle.mass / deltaTime) *
             (particle.velocity.point.y - (circleMaxSpeed * particle.scale)), 0))).scale(-1);
         return out;
     } else {
@@ -242,7 +242,7 @@ function update(elapsed) {
     }
 
     if(mouseVelocity.length >= settings.mouseAverageLength) {
-        var mouseSum = new Force(mouseWindForceId, Vector.average(mouseVelocity).getXComponet().scale(settings.mouseForceScale));
+        var mouseSum = new Force(mouseWindForceId, Vector.average(mouseVelocity).getXComponent().scale(settings.mouseForceScale));
         mouseSum.relevant = function () {
             if(this.count > 0) {
                 return false;
@@ -383,19 +383,6 @@ function loop() {
     deltaTime = current - previous;
     previous = current;
 
-    if(!minDeltaTime) {
-        minDeltaTime = deltaTime;
-    }
-    if(!maxDeltaTime) {
-        maxDeltaTime = deltaTime;
-    }
-
-    if(deltaTime < maxDeltaTime) {
-        maxDeltaTime = deltaTime;
-    } else if(deltaTime > minDeltaTime) {
-        minDeltaTime = deltaTime;
-    }
-
     deltaTimes[deltaTimeIndex] = deltaTime;
     deltaTimeIndex++;
     if(deltaTimeIndex > deltaTimeArrayLength - 1) {
@@ -408,18 +395,31 @@ function loop() {
         }
         avg /= deltaTimeArrayLength;
         averageDeltaTime = avg;
+
+        if(!minDeltaTime) {
+            minDeltaTime = deltaTime;
+        }
+        if(!maxDeltaTime) {
+            maxDeltaTime = deltaTime;
+        }
+
+        if(deltaTime < maxDeltaTime) {
+            maxDeltaTime = deltaTime;
+        } else if(deltaTime > minDeltaTime) {
+            minDeltaTime = deltaTime;
+        }
     }
 
     if(guiFunctions.showFpsCount) {
-        fpsCounter.innerHTML = "FPS: " + (1 / (averageDeltaTime / 1000)).toFixed(2) +
-                                "   Max: " + (1 / (maxDeltaTime / 1000)).toFixed(2) +
-                                "   Min: " + (1 / (minDeltaTime / 1000)).toFixed(2);
+        fpsCounter.innerHTML = "<div><strong>FPS:</strong> " + (1 / (averageDeltaTime / 1000)).toFixed(2) + "</div>" +
+                                "<div><strong>Max:</strong> " + (1 / (maxDeltaTime / 1000)).toFixed(2) + "</div>" +
+                                "<div><strong>Min:</strong> " + (1 / (minDeltaTime / 1000)).toFixed(2) + "</div>";
     } else {
         fpsCounter.innerHTML = "";
     }
 
-    requestAnimFrame(loop);
     update(deltaTime);
+    requestAnimFrame(loop);
     render(context);
 };
 
