@@ -50,10 +50,10 @@ Force.GRAVITY.getVector = function (particle, deltaTime) {
 Force.AIR_RESISTANCE_ID = "air_resistance";
 Force.AIR_RESISTANCE = new Force(Force.AIR_RESISTANCE_ID);
 Force.AIR_RESISTANCE.getVector = function (particle, deltaTime) {
-    return new Vector(new Point((Math.pow(particle.velocity.point.x, 2) *
-        particle.dragCoefficent * -getSign(particle.velocity.point.x)) / particle.scale,
-        (Math.pow(particle.velocity.point.y, 2) * particle.dragCoefficent *
-        -getSign(particle.velocity.point.y)) / particle.scale));
+    return new Vector(new Point((Math.pow(particle.velocity.x, 2) *
+        particle.dragCoefficent * -getSign(particle.velocity.x)) / particle.scale,
+        (Math.pow(particle.velocity.y, 2) * particle.dragCoefficent *
+        -getSign(particle.velocity.y)) / particle.scale));
 };
 
 //===================================================================
@@ -68,11 +68,9 @@ var PhysicsObject = function (point, mass, scale, vector) {
     this.velocity = vector || new Vector();
     this.scale = scale || 1;
     this.forces = [];
-    this.netForce = new Force(Particle.NET_FORCE_ID);
+    this.netForce = new Force(Force.NET_FORCE_ID);
     this.scaledNetForce = new Force(Particle.SCALED_NET_FORCE_ID);
 };
-
-PhysicsObject.update()
 
 //===================================================================
 
@@ -89,13 +87,15 @@ Particle.prototype = new PhysicsObject();
 
 Particle.prototype.updateParticle = function (deltaTime) {
 
+    //console.log(this.point);
+
     if(this.collisionVector) {
         this.velocity.add(this.collisionVector);
         this.collisionVector = new Vector();
     }
 
     //Apply all forces to particle
-    this.netForce = new Force(Particle.NET_FORCE_ID, new Vector());
+    this.netForce = new Force(Force.NET_FORCE_ID, new Vector());
     for(var i = this.forces.length - 1; i >= 0; i--) {
         if(!this.forces[i].relevant(this)) {
             this.forces.splice(i, 1);
@@ -103,13 +103,13 @@ Particle.prototype.updateParticle = function (deltaTime) {
         }
         this.netForce.vector.add(this.forces[i].getVector(this, deltaTime));
     }
-    this.scaledNetForce = new Force(Particle.SCALED_NET_FORCE_ID, this.netForce.vector.copy().scale(this.scale));
+    this.scaledNetForce = new Force(Force.SCALED_NET_FORCE_ID, this.netForce.vector.copy().scale(this.scale));
 
     this.velocity.add(this.scaledNetForce.getVector(this, deltaTime).copy().scale((1 / this.mass) * deltaTime));
 
-    this.point.x += this.velocity.point.x * deltaTime;
-    this.point.y += this.velocity.point.y * deltaTime;
-    this.point.z += this.velocity.point.z * deltaTime;
+    this.point.x += this.velocity.x * deltaTime;
+    this.point.y += this.velocity.y * deltaTime;
+    this.point.z += this.velocity.z * deltaTime;
 };
 
 Particle.prototype.getMomentum = function () {
@@ -224,8 +224,8 @@ var Convex = function (origin, vectors, scale, rotate) {
     var yl = 0;
     var len = this.vectors.length;
     for(var i = 0; i < len; i++) {
-        var x = this.vectors[i].point.x * this.scale;
-        var y = this.vectors[i].point.y * this.scale;
+        var x = this.vectors[i].x * this.scale;
+        var y = this.vectors[i].y * this.scale;
 
         if(x > xh) {
             xh = x;
@@ -251,10 +251,10 @@ Convex.prototype.render = function (context, point, color) {
     context.fillStyle = c;
 
     context.beginPath();
-    context.moveTo(this.origin.x + p.x + (this.vectors[0].point.x * this.scale), this.origin.y + p.y + (this.vectors[0].point.y * this.scale));
+    context.moveTo(this.origin.x + p.x + (this.vectors[0].x * this.scale), this.origin.y + p.y + (this.vectors[0].y * this.scale));
     var len = this.vectors.length;
     for(var i = 1; i < len; i++) {
-        context.lineTo(this.origin.x + p.x + (this.vectors[i].point.x * this.scale), this.origin.y + p.y + (this.vectors[i].point.y * this.scale));
+        context.lineTo(this.origin.x + p.x + (this.vectors[i].x * this.scale), this.origin.y + p.y + (this.vectors[i].y * this.scale));
     }
     context.closePath();
     context.fill();
@@ -293,8 +293,8 @@ var RenderObject = function(point, shapes, colors) {
     for(var i = 0; i < len1; i++) {
         var len2 = this.shapes[i].vectors.length;
         for(var j = 0; j < len2; j++) {
-            var x = this.shapes[i].vectors[j].point.x * this.shapes[i].scale;
-            var y = this.shapes[i].vectors[j].point.y * this.shapes[i].scale;
+            var x = this.shapes[i].vectors[j].x * this.shapes[i].scale;
+            var y = this.shapes[i].vectors[j].y * this.shapes[i].scale;
 
             if(x > xh) {
                 xh = x;

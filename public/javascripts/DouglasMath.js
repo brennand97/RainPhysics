@@ -65,8 +65,10 @@ var Vector = function() {
         y = arguments[1] || 0;
         z = arguments[2] || 0;
     }
-    Point.call(x, y, z);
+    Point.call(this, x, y, z);
 };
+
+Vector.prototype = new Point();
 
 Vector.degrees = false;
 Vector.i = Vector.x = new Vector(new Point(1, 0, 0));

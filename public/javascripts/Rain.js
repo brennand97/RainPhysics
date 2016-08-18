@@ -137,7 +137,7 @@ circleForce.getVector = function (particle, deltaTime) {
             }
         }
         var out = net.copy().getYComponent().add(new Vector(new Point(0, circleAclScale * (particle.mass / deltaTime) *
-            (particle.velocity.point.y - (circleMaxSpeed * particle.scale)), 0))).scale(-1);
+            (particle.velocity.y - (circleMaxSpeed * particle.scale)), 0))).scale(-1);
         return out;
     } else {
         return new Vector();
